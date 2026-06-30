@@ -1,0 +1,23 @@
+{
+  "name": "Moulabo MooAssets",
+  "id": "com.moulabo.listing",
+  "url": "https://moosan.github.io/MooAssets-vpm/index.json",
+  "author": {
+    "email": "",
+    "name": "Moulabo",
+    "url": "https://github.com/Moosan"
+  },
+  "description": "VRChat ワールド向けギミック集 MooAssets の VPM 配布 Listing です。",
+  "infoLink": {
+    "url": "https://github.com/Moosan/MooAssets-vpm",
+    "text": "View on GitHub"
+  },
+  "packages": [
+    {
+      "name": "com.moulabo.mooassets",
+      "releases": [
+        "https://github.com/Moosan/MooAssets-vpm/releases/download/v1.1.0/com.moulabo.mooassets-1.1.0.zip"
+      ]
+    }
+  ]
+}
