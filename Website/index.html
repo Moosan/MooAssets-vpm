@@ -83,6 +83,68 @@
       </div>
     </section>
 
+    <section class="card" id="upgrade">
+      <h2>アップデート・移行ガイド</h2>
+      <p class="card-sub">過去に UnityPackage（<code>Assets/MooAssets</code>）で入れた人向け。VPM v1.1.0 以降は VCC 経由が正規ルートです。当面 BOOTH 等での配布は行わず、友人間ではこのページの URL を共有してください。</p>
+
+      <h3>UnityPackage → VPM（初めて VPM に切り替える）</h3>
+      <ol class="help-list">
+        <li><strong>プロジェクトをバックアップ</strong>（Git コミットまたは zip 退避）</li>
+        <li>旧 <code>Assets/MooAssets</code> フォルダを<strong>削除</strong>（VPM と二重に置くと Missing / 重複コンパイルの原因）</li>
+        <li>自分のワールド用スクリプトで旧 API を使っている場合は先に修正（下記「API 変更」参照）</li>
+        <li>上記「VCC に登録」の Listing URL を VCC に追加</li>
+        <li>Manage Project で MooAssets をインストール → Unity 再起動</li>
+        <li><strong>UdonSharp → Compile All UdonSharp Programs</strong> を実行</li>
+        <li>シーン・Prefab を開き、Missing Script・Console エラーがないか確認</li>
+      </ol>
+
+      <h3>すでに VPM 入り済みのプロジェクトを更新する</h3>
+      <ol class="help-list">
+        <li>VCC で Listing を Refresh（作者が Release zip を差し替えた場合は Listing 再ビルド後）</li>
+        <li>Manage Project で MooAssets を Remove → 同バージョンまたは新バージョンを再 Install（または VCC の更新 UI で上げる）</li>
+        <li>Unity 再起動 → UdonSharp 全コンパイル</li>
+        <li><code>Packages/com.moulabo.mooassets</code> は<strong>直接編集しない</strong>（上書きされる）。カスタムは <code>Assets/</code> 側に置く</li>
+      </ol>
+
+      <h3>壊れにくくするコツ</h3>
+      <ul class="help-list">
+        <li><strong>Prefab / シーン参照</strong>: パッケージ内 Prefab を Hierarchy に置いた参照は GUID 維持のため通常はそのまま。Missing が出たら同バージョンの Prefab を入れ直す</li>
+        <li><strong>依存パッケージ</strong>: FukuroUdon・VRCLightVolumes は VCC が自動解決。手動で古い版だけ残さない</li>
+        <li><strong>カスタム Udon</strong>: パッケージ内スクリプトをコピーして改変している場合、VPM 更新で上書きされないが、正本 API 変更時は自分のコピーも追従が必要</li>
+      </ul>
+
+      <h3>主な API 変更（1.1.0 / VPM 移行時）</h3>
+      <table class="meta-table">
+        <tr><th>旧（UnityPackage 時代）</th><th>新（VPM）</th></tr>
+        <tr><td><code>MooAssets.Util.InAreaPlayer</code><br><code>BaseInAreaEventListener</code> / <code>InAreaPlayer</code></td><td><code>MooAssets.Util.AreaPlayer</code><br><code>AreaPlayerNotify</code> + <code>AreaPlayerUpdate</code> / <code>LocalPlayerIn</code> 等のカスタムイベント</td></tr>
+        <tr><td><code>Assets/MooAssets/</code> 配下</td><td><code>Packages/com.moulabo.mooassets/</code></td></tr>
+      </table>
+      <p class="card-sub">SoundSpaceSystem・AreaPlayerCountEventEntry 等、正本側の利用例はパッケージ内 <code>Runtime/Util/</code> を参照。独自ギミック（例: VoiceObserveArea）は <code>AreaPlayerNotify</code> を Inspector で <code>notifyReceivers</code> に登録する形に書き換える。</p>
+
+      <h3>困ったとき</h3>
+      <ul class="help-list">
+        <li>Console に Editor だけ CS0246 → Runtime 側の依存不足（FukuroUdon 等）や zip 古版の可能性。Listing Refresh と Remove / Reinstall</li>
+        <li>Listing URL: <code>{{ listingInfo.Url }}</code></li>
+        <li>開発・仕様の詳細: 作者の MoulaWorkSpace <code>docs/projects/mooassets.html</code>（非公開 repo の場合は作者へ問い合わせ）</li>
+      </ul>
+    </section>
+
+    <section class="card" id="changelog">
+      <h2>更新履歴</h2>
+      <p class="card-sub">正本はパッケージ内 <code>CHANGELOG.md</code>（VPM インストール後も <code>Packages/com.moulabo.mooassets/</code> に同梱）。公開 repo にもミラーを置いています。</p>
+
+      <h3>最新: v1.1.0（2026-07-01）</h3>
+      <ul class="help-list">
+        <li>VPM 配布開始（VCC からインストール）</li>
+        <li>パッケージ構成を <code>Packages/com.moulabo.mooassets</code> に統一</li>
+        <li>AreaPlayer API 刷新（<code>AreaPlayerNotify</code>）</li>
+      </ul>
+      <p class="card-sub">UnityPackage から移行する場合は <a href="#upgrade">アップデート・移行ガイド</a> も参照。</p>
+      <div class="btn-row">
+        <a class="btn primary" href="https://github.com/Moosan/MooAssets-vpm/blob/main/CHANGELOG.md" target="_blank" rel="noopener">CHANGELOG 全文（GitHub）</a>
+      </div>
+    </section>
+
     <p class="foot">MooAssets · VPM Listing</p>
   </main>
 
