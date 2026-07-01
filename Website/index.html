@@ -24,16 +24,16 @@
       <p class="card-sub">VRChat Creator Companion の Settings → Packages → Add Repository に、下の Listing URL を貼り付けてください。</p>
       <div class="url-row">
         <input class="url-field" id="vccUrlField" readonly value="{{ listingInfo.Url }}">
-        <button type="button" class="btn" id="vccUrlCopy">URL をコピー</button>
-        <button type="button" class="btn primary" id="vccAddRepo">VCC に追加</button>
-        <button type="button" class="btn" id="helpOpen">手順を見る</button>
+        <button type="button" class="btn" onclick="copyListingUrl(this)">URL をコピー</button>
+        <a class="btn primary vcc-add-link" id="vccAddRepo" href="#">VCC に追加</a>
+        <button type="button" class="btn" onclick="document.getElementById('helpDialog').showModal()">手順を見る</button>
       </div>
-      <p class="card-sub vcc-note">「VCC に追加」は VCC がインストールされている PC でのみ VCC が起動します。ブラウザだけの場合は URL をコピーして手動で追加してください。</p>
+      <p class="card-sub vcc-note">GitHub Pages でも JavaScript は動作します。「VCC に追加」は VCC インストール済み PC で VCC プロトコルが有効な場合に反応します。反応しない場合は URL をコピーして VCC から手動追加してください。</p>
     </section>
 
     <section class="card">
       <h2>パッケージ</h2>
-      <input class="search-field" id="searchInput" type="search" placeholder="パッケージ名で検索…" autocomplete="off">
+      <input class="search-field" id="searchInput" type="search" placeholder="パッケージ名で検索…" autocomplete="off" oninput="filterPackages(this.value)">
       <div class="grid" id="packageGrid">
         {{~ for package in packages ~}}
         <article class="package-card" data-package-name="{{ package.DisplayName }}" data-package-id="{{ package.Name }}">
@@ -54,15 +54,15 @@
                   {{ package.Author.Name }}
                 {{~ end ~}}
               </td></tr>
-              {{~ if package.Dependencies.size > 0 ~}}
               <tr><th>依存</th><td>
                 <ul class="help-list compact">
                   {{~ for dependency in package.Dependencies ~}}
                   <li>{{ dependency.Name }} @ {{ dependency.Version }}</li>
+                  {{~ else ~}}
+                  <li>なし</li>
                   {{~ end ~}}
                 </ul>
               </td></tr>
-              {{~ end ~}}
               {{~ if package.License || package.LicenseUrl ~}}
               <tr><th>ライセンス</th><td>
                 {{~ if package.LicenseUrl ~}}
@@ -75,7 +75,7 @@
             </table>
           </details>
           <div class="btn-row">
-            <button type="button" class="btn primary rowAddToVcc">VCC に追加</button>
+            <a class="btn primary vcc-add-link" href="#">VCC に追加</a>
             <a class="btn" href="{{ package.ZipUrl }}" target="_blank" rel="noopener">ZIP</a>
           </div>
         </article>
@@ -98,11 +98,94 @@
       </ol>
       <p class="card-sub">詳細は <a href="https://vcc.docs.vrchat.com/vpm/repos/" target="_blank" rel="noopener">VCC ドキュメント</a></p>
       <div class="dialog-actions">
-        <button type="button" class="btn" id="helpClose">閉じる</button>
+        <button type="button" class="btn" onclick="document.getElementById('helpDialog').close()">閉じる</button>
       </div>
     </div>
   </dialog>
 
-  <script src="app.js"></script>
+  <script>
+    function getListingUrl() {
+      var field = document.getElementById("vccUrlField");
+      return field ? field.value : "";
+    }
+
+    function flashButton(button, message) {
+      if (!button) return;
+      var prev = button.textContent;
+      button.textContent = message;
+      button.classList.add("copied");
+      setTimeout(function () {
+        button.textContent = prev;
+        button.classList.remove("copied");
+      }, 1400);
+    }
+
+    function copyListingUrl(button) {
+      var text = getListingUrl();
+      if (!text) return;
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function () {
+          flashButton(button, "コピーしました");
+        }).catch(function () {
+          legacyCopyListingUrl(button);
+        });
+        return;
+      }
+      legacyCopyListingUrl(button);
+    }
+
+    function legacyCopyListingUrl(button) {
+      var field = document.getElementById("vccUrlField");
+      if (!field) return;
+      field.removeAttribute("readonly");
+      field.focus();
+      field.select();
+      field.setSelectionRange(0, field.value.length);
+      var ok = false;
+      try {
+        ok = document.execCommand("copy");
+      } catch (e) {
+        ok = false;
+      }
+      field.setAttribute("readonly", "readonly");
+      if (ok) {
+        flashButton(button, "コピーしました");
+      } else {
+        flashButton(button, "手動で選択してください");
+      }
+    }
+
+    function updateVccLinks() {
+      var url = getListingUrl();
+      if (!url) return;
+      var vccHref = "vcc://vpm/addRepo?url=" + encodeURIComponent(url);
+      var links = document.querySelectorAll(".vcc-add-link");
+      for (var i = 0; i < links.length; i++) {
+        links[i].href = vccHref;
+      }
+    }
+
+    function filterPackages(query) {
+      var q = (query || "").trim().toLowerCase();
+      var cards = document.querySelectorAll("#packageGrid .package-card");
+      for (var i = 0; i < cards.length; i++) {
+        var card = cards[i];
+        if (!q) {
+          card.classList.remove("hidden");
+          continue;
+        }
+        var name = (card.getAttribute("data-package-name") || "").toLowerCase();
+        var id = (card.getAttribute("data-package-id") || "").toLowerCase();
+        if (name.indexOf(q) !== -1 || id.indexOf(q) !== -1) {
+          card.classList.remove("hidden");
+        } else {
+          card.classList.add("hidden");
+        }
+      }
+    }
+
+    updateVccLinks();
+  </script>
 </body>
 </html>
