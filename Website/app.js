@@ -1,5 +1,3 @@
-import { baseLayerLuminance, StandardLuminance } from 'https://unpkg.com/@fluentui/web-components';
-
 const LISTING_URL = "{{ listingInfo.Url }}";
 
 const PACKAGES = {
@@ -15,217 +13,126 @@ const PACKAGES = {
     },
     dependencies: {
       {{~ for dependency in package.Dependencies ~}}
-        "{{ dependency.Name }}": "{{ dependency.Version }}",
+      "{{ dependency.Name }}": "{{ dependency.Version }}",
       {{~ end ~}}
     },
-    keywords: [
-      {{~ for keyword in package.Keywords ~}}
-        "{{ keyword }}",
-      {{~ end ~}}
-    ],
     license: "{{ package.License }}",
-    licensesUrl: "{{ package.LicensesUrl }}",
+    licenseUrl: "{{ package.LicenseUrl }}",
   },
 {{~ end ~}}
 };
 
-const setTheme = () => {
-  const isDarkTheme = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
-  if (isDarkTheme()) {
-    baseLayerLuminance.setValueFor(document.documentElement, StandardLuminance.DarkMode);
-  } else {
-    baseLayerLuminance.setValueFor(document.documentElement, StandardLuminance.LightMode);
-  }
+function copyText(text, button) {
+  navigator.clipboard.writeText(text).then(() => {
+    if (!button) return;
+    const prev = button.textContent;
+    button.textContent = "コピーしました";
+    button.classList.add("copied");
+    setTimeout(() => {
+      button.textContent = prev;
+      button.classList.remove("copied");
+    }, 1200);
+  });
 }
 
 (() => {
-  setTheme();
+  const searchInput = document.getElementById("searchInput");
+  const packageGrid = document.getElementById("packageGrid");
+  const cards = packageGrid.querySelectorAll(".package-card");
 
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    setTheme();
-  });
-
-  const packageGrid = document.getElementById('packageGrid');
-
-  const searchInput = document.getElementById('searchInput');
-  searchInput.addEventListener('input', ({ target: { value = '' }}) => {
-    const items = packageGrid.querySelectorAll('fluent-data-grid-row[row-type="default"]');
-    items.forEach(item => {
-      if (value === '') {
-        item.style.display = 'grid';
+  searchInput.addEventListener("input", ({ target: { value = "" } }) => {
+    const q = value.trim().toLowerCase();
+    cards.forEach((card) => {
+      if (!q) {
+        card.classList.remove("hidden");
         return;
       }
-      if (
-        item.dataset?.packageName?.toLowerCase()?.includes(value.toLowerCase()) ||
-        item.dataset?.packageId?.toLowerCase()?.includes(value.toLowerCase())
-      ) {
-        item.style.display = 'grid';
-      } else {
-        item.style.display = 'none';
-      }
+      const name = card.dataset.packageName?.toLowerCase() ?? "";
+      const id = card.dataset.packageId?.toLowerCase() ?? "";
+      card.classList.toggle("hidden", !(name.includes(q) || id.includes(q)));
     });
   });
 
-  const urlBarHelpButton = document.getElementById('urlBarHelp');
-  const addListingToVccHelp = document.getElementById('addListingToVccHelp');
-  urlBarHelpButton.addEventListener('click', () => {
-    addListingToVccHelp.hidden = false;
-  });
-  const addListingToVccHelpClose = document.getElementById('addListingToVccHelpClose');
-  addListingToVccHelpClose.addEventListener('click', () => {
-    addListingToVccHelp.hidden = true;
+  document.getElementById("vccUrlCopy").addEventListener("click", () => {
+    copyText(document.getElementById("vccUrlField").value, document.getElementById("vccUrlCopy"));
   });
 
-  const vccListingInfoUrlFieldCopy = document.getElementById('vccListingInfoUrlFieldCopy');
-  vccListingInfoUrlFieldCopy.addEventListener('click', () => {
-    const vccUrlField = document.getElementById('vccListingInfoUrlField');
-    vccUrlField.select();
-    navigator.clipboard.writeText(vccUrlField.value);
-    vccUrlFieldCopy.appearance = 'accent';
-    setTimeout(() => {
-      vccUrlFieldCopy.appearance = 'neutral';
-    }, 1000);
+  const openVccAdd = () => {
+    window.location.assign(`vcc://vpm/addRepo?url=${encodeURIComponent(LISTING_URL)}`);
+  };
+  document.getElementById("vccAddRepo").addEventListener("click", (e) => {
+    e.preventDefault();
+    openVccAdd();
+  });
+  document.querySelectorAll(".rowAddToVcc").forEach((btn) => {
+    btn.addEventListener("click", openVccAdd);
   });
 
-  const vccAddRepoButton = document.getElementById('vccAddRepoButton');
-  vccAddRepoButton.addEventListener('click', () => window.location.assign(`vcc://vpm/addRepo?url=${encodeURIComponent(LISTING_URL)}`));
+  const helpDialog = document.getElementById("helpDialog");
+  document.getElementById("helpOpen").addEventListener("click", () => helpDialog.showModal());
+  document.getElementById("helpClose").addEventListener("click", () => helpDialog.close());
 
-  const vccUrlFieldCopy = document.getElementById('vccUrlFieldCopy');
-  vccUrlFieldCopy.addEventListener('click', () => {
-    const vccUrlField = document.getElementById('vccUrlField');
-    vccUrlField.select();
-    navigator.clipboard.writeText(vccUrlField.value);
-    vccUrlFieldCopy.appearance = 'accent';
-    setTimeout(() => {
-      vccUrlFieldCopy.appearance = 'neutral';
-    }, 1000);
-  });
+  const packageDialog = document.getElementById("packageDialog");
+  document.getElementById("packageDialogClose").addEventListener("click", () => packageDialog.close());
 
-  const rowMoreMenu = document.getElementById('rowMoreMenu');
-  const hideRowMoreMenu = e => {
-    if (rowMoreMenu.contains(e.target)) return;
-    document.removeEventListener('click', hideRowMoreMenu);
-    rowMoreMenu.hidden = true;
-  }
+  document.querySelectorAll(".rowPackageInfo").forEach((button) => {
+    button.addEventListener("click", () => {
+      const packageId = button.dataset.packageId;
+      const info = PACKAGES[packageId];
+      if (!info) return;
 
-  const rowMenuButtons = document.querySelectorAll('.rowMenuButton');
-  rowMenuButtons.forEach(button => {
-    button.addEventListener('click', e => {
-      if (rowMoreMenu?.hidden) {
-        rowMoreMenu.style.top = `${e.clientY + e.target.clientHeight}px`;
-        rowMoreMenu.style.left = `${e.clientX - 120}px`;
-        rowMoreMenu.hidden = false;
+      document.getElementById("packageInfoName").textContent = info.displayName || packageId;
+      document.getElementById("packageInfoId").textContent = packageId;
+      document.getElementById("packageInfoVersion").textContent = `v${info.version}`;
+      document.getElementById("packageInfoDescription").textContent = info.description || "—";
 
-        const downloadLink = rowMoreMenu.querySelector('#rowMoreMenuDownload');
-        const downloadListener = () => {
-          window.open(e?.target?.dataset?.packageUrl, '_blank');
+      const authorCell = document.getElementById("packageInfoAuthorCell");
+      authorCell.textContent = "";
+      if (info.author?.name) {
+        if (info.author.url) {
+          const a = document.createElement("a");
+          a.href = info.author.url;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.textContent = info.author.name;
+          authorCell.appendChild(a);
+        } else {
+          authorCell.textContent = info.author.name;
         }
-        downloadLink.addEventListener('change', () => {
-          downloadListener();
-          downloadLink.removeEventListener('change', downloadListener);
-        });
-
-        setTimeout(() => {
-          document.addEventListener('click', hideRowMoreMenu);
-        }, 1);
-      }
-    });
-  });
-
-  const packageInfoModal = document.getElementById('packageInfoModal');
-  const packageInfoModalClose = document.getElementById('packageInfoModalClose');
-  packageInfoModalClose.addEventListener('click', () => {
-    packageInfoModal.hidden = true;
-  });
-
-  // Fluent dialogs use nested shadow-rooted elements, so we need to use JS to style them
-  const modalControl = packageInfoModal.shadowRoot.querySelector('.control');
-  modalControl.style.maxHeight = "90%";
-  modalControl.style.transition = 'height 0.2s ease-in-out';
-  modalControl.style.overflowY = 'hidden';
-
-  const packageInfoName = document.getElementById('packageInfoName');
-  const packageInfoId = document.getElementById('packageInfoId');
-  const packageInfoVersion = document.getElementById('packageInfoVersion');
-  const packageInfoDescription = document.getElementById('packageInfoDescription');
-  const packageInfoAuthor = document.getElementById('packageInfoAuthor');
-  const packageInfoDependencies = document.getElementById('packageInfoDependencies');
-  const packageInfoKeywords = document.getElementById('packageInfoKeywords');
-  const packageInfoLicense = document.getElementById('packageInfoLicense');
-
-  const rowAddToVccButtons = document.querySelectorAll('.rowAddToVccButton');
-  rowAddToVccButtons.forEach((button) => {
-    button.addEventListener('click', () => window.location.assign(`vcc://vpm/addRepo?url=${encodeURIComponent(LISTING_URL)}`));
-  });
-
-  const rowPackageInfoButton = document.querySelectorAll('.rowPackageInfoButton');
-  rowPackageInfoButton.forEach((button) => {
-    button.addEventListener('click', e => {
-      const packageId = e.target.dataset?.packageId;
-      const packageInfo = PACKAGES?.[packageId];
-      if (!packageInfo) {
-        console.error(`Did not find package ${packageId}. Packages available:`, PACKAGES);
-        return;
-      }
-
-      packageInfoName.textContent = packageInfo.displayName;
-      packageInfoId.textContent = packageId;
-      packageInfoVersion.textContent = `v${packageInfo.version}`;
-      packageInfoDescription.textContent = packageInfo.description;
-      packageInfoAuthor.textContent = packageInfo.author.name;
-      packageInfoAuthor.href = packageInfo.author.url;
-
-      if ((packageInfo.keywords?.length ?? 0) === 0) {
-        packageInfoKeywords.parentElement.classList.add('hidden');
       } else {
-        packageInfoKeywords.parentElement.classList.remove('hidden');
-        packageInfoKeywords.innerHTML = null;
-        packageInfo.keywords.forEach(keyword => {
-          const keywordDiv = document.createElement('div');
-          keywordDiv.classList.add('me-2', 'mb-2', 'badge');
-          keywordDiv.textContent = keyword;
-          packageInfoKeywords.appendChild(keywordDiv);
-        });
+        authorCell.textContent = "—";
       }
 
-      if (!packageInfo.license?.length && !packageInfo.licensesUrl?.length) {
-        packageInfoLicense.parentElement.classList.add('hidden');
-      } else {
-        packageInfoLicense.parentElement.classList.remove('hidden');
-        packageInfoLicense.textContent = packageInfo.license ?? 'See License';
-        packageInfoLicense.href = packageInfo.licensesUrl ?? '#';
-      }
-
-      packageInfoDependencies.innerHTML = null;
-      Object.entries(packageInfo.dependencies).forEach(([name, version]) => {
-        const depRow = document.createElement('li');
-        depRow.classList.add('mb-2');
-        depRow.textContent = `${name} @ v${version}`;
-        packageInfoDependencies.appendChild(depRow);
+      const depsList = document.getElementById("packageInfoDependencies");
+      depsList.innerHTML = "";
+      const deps = Object.entries(info.dependencies ?? {});
+      document.getElementById("packageInfoDepsRow").classList.toggle("hidden", deps.length === 0);
+      deps.forEach(([name, version]) => {
+        const li = document.createElement("li");
+        li.textContent = `${name} @ ${version}`;
+        depsList.appendChild(li);
       });
 
-      packageInfoModal.hidden = false;
+      const licenseRow = document.getElementById("packageInfoLicenseRow");
+      const licenseCell = document.getElementById("packageInfoLicenseCell");
+      licenseCell.textContent = "";
+      if (info.license || info.licenseUrl) {
+        licenseRow.classList.remove("hidden");
+        if (info.licenseUrl) {
+          const a = document.createElement("a");
+          a.href = info.licenseUrl;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.textContent = info.license || "ライセンスを見る";
+          licenseCell.appendChild(a);
+        } else {
+          licenseCell.textContent = info.license;
+        }
+      } else {
+        licenseRow.classList.add("hidden");
+      }
 
-      setTimeout(() => {
-        const height = packageInfoModal.querySelector('.col').clientHeight;
-        modalControl.style.setProperty('--dialog-height', `${height + 14}px`);
-      }, 1);
+      packageDialog.showModal();
     });
-  });
-
-  const packageInfoVccUrlFieldCopy = document.getElementById('packageInfoVccUrlFieldCopy');
-  packageInfoVccUrlFieldCopy.addEventListener('click', () => {
-    const vccUrlField = document.getElementById('packageInfoVccUrlField');
-    vccUrlField.select();
-    navigator.clipboard.writeText(vccUrlField.value);
-    vccUrlFieldCopy.appearance = 'accent';
-    setTimeout(() => {
-      vccUrlFieldCopy.appearance = 'neutral';
-    }, 1000);
-  });
-
-  const packageInfoListingHelp = document.getElementById('packageInfoListingHelp');
-  packageInfoListingHelp.addEventListener('click', () => {
-    addListingToVccHelp.hidden = false;
   });
 })();
