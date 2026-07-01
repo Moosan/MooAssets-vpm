@@ -25,9 +25,10 @@
       <div class="url-row">
         <input class="url-field" id="vccUrlField" readonly value="{{ listingInfo.Url }}">
         <button type="button" class="btn" id="vccUrlCopy">URL をコピー</button>
-        <a class="btn primary" id="vccAddRepo" href="#">VCC に追加</a>
+        <button type="button" class="btn primary" id="vccAddRepo">VCC に追加</button>
         <button type="button" class="btn" id="helpOpen">手順を見る</button>
       </div>
+      <p class="card-sub vcc-note">「VCC に追加」は VCC がインストールされている PC でのみ VCC が起動します。ブラウザだけの場合は URL をコピーして手動で追加してください。</p>
     </section>
 
     <section class="card">
@@ -43,9 +44,38 @@
           <h3>{{ package.DisplayName }}</h3>
           <p class="pkg-desc">{{ package.Description }}</p>
           <div class="pkg-id">{{ package.Name }}</div>
+          <details class="pkg-details">
+            <summary>詳細を見る</summary>
+            <table class="meta-table">
+              <tr><th>作者</th><td>
+                {{~ if package.Author.Url ~}}
+                  <a href="{{ package.Author.Url }}" target="_blank" rel="noopener">{{ package.Author.Name }}</a>
+                {{~ else ~}}
+                  {{ package.Author.Name }}
+                {{~ end ~}}
+              </td></tr>
+              {{~ if package.Dependencies.size > 0 ~}}
+              <tr><th>依存</th><td>
+                <ul class="help-list compact">
+                  {{~ for dependency in package.Dependencies ~}}
+                  <li>{{ dependency.Name }} @ {{ dependency.Version }}</li>
+                  {{~ end ~}}
+                </ul>
+              </td></tr>
+              {{~ end ~}}
+              {{~ if package.License || package.LicenseUrl ~}}
+              <tr><th>ライセンス</th><td>
+                {{~ if package.LicenseUrl ~}}
+                  <a href="{{ package.LicenseUrl }}" target="_blank" rel="noopener">{{ if package.License; package.License; else; "ライセンス"; end; }}</a>
+                {{~ else ~}}
+                  {{ package.License }}
+                {{~ end ~}}
+              </td></tr>
+              {{~ end ~}}
+            </table>
+          </details>
           <div class="btn-row">
             <button type="button" class="btn primary rowAddToVcc">VCC に追加</button>
-            <button type="button" class="btn rowPackageInfo" data-package-id="{{ package.Name }}">詳細</button>
             <a class="btn" href="{{ package.ZipUrl }}" target="_blank" rel="noopener">ZIP</a>
           </div>
         </article>
@@ -73,23 +103,6 @@
     </div>
   </dialog>
 
-  <dialog id="packageDialog">
-    <div class="dialog-inner">
-      <h3 id="packageInfoName">Package</h3>
-      <p class="pkg-id" id="packageInfoId"></p>
-      <table class="meta-table">
-        <tr><th>バージョン</th><td id="packageInfoVersion"></td></tr>
-        <tr><th>説明</th><td id="packageInfoDescription"></td></tr>
-        <tr><th>作者</th><td id="packageInfoAuthorCell"></td></tr>
-        <tr id="packageInfoDepsRow"><th>依存</th><td><ul id="packageInfoDependencies" class="help-list"></ul></td></tr>
-        <tr id="packageInfoLicenseRow"><th>ライセンス</th><td id="packageInfoLicenseCell"></td></tr>
-      </table>
-      <div class="dialog-actions">
-        <button type="button" class="btn" id="packageDialogClose">閉じる</button>
-      </div>
-    </div>
-  </dialog>
-
-  <script type="module" src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

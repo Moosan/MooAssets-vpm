@@ -1,138 +1,91 @@
-const LISTING_URL = "{{ listingInfo.Url }}";
+(function () {
+  function copyText(text, button) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        flashButton(button, "コピーしました");
+      }).catch(function () {
+        fallbackCopy(text, button);
+      });
+      return;
+    }
+    fallbackCopy(text, button);
+  }
 
-const PACKAGES = {
-{{~ for package in packages ~}}
-  "{{ package.Name }}": {
-    name: "{{ package.Name }}",
-    displayName: "{{ if package.DisplayName; package.DisplayName; end; }}",
-    description: "{{ if package.Description; package.Description; end; }}",
-    version: "{{ package.Version }}",
-    author: {
-      name: "{{ if package.Author.Name; package.Author.Name; end; }}",
-      url: "{{ if package.Author.Url; package.Author.Url; end; }}",
-    },
-    dependencies: {
-      {{~ for dependency in package.Dependencies ~}}
-      "{{ dependency.Name }}": "{{ dependency.Version }}",
-      {{~ end ~}}
-    },
-    license: "{{ package.License }}",
-    licenseUrl: "{{ package.LicenseUrl }}",
-  },
-{{~ end ~}}
-};
+  function fallbackCopy(text, button) {
+    var field = document.getElementById("vccUrlField");
+    field.removeAttribute("readonly");
+    field.select();
+    field.setSelectionRange(0, text.length);
+    try {
+      document.execCommand("copy");
+      flashButton(button, "コピーしました");
+    } catch (e) {
+      flashButton(button, "コピーできませんでした");
+    }
+    field.setAttribute("readonly", "readonly");
+  }
 
-function copyText(text, button) {
-  navigator.clipboard.writeText(text).then(() => {
+  function flashButton(button, message) {
     if (!button) return;
-    const prev = button.textContent;
-    button.textContent = "コピーしました";
+    var prev = button.textContent;
+    button.textContent = message;
     button.classList.add("copied");
-    setTimeout(() => {
+    setTimeout(function () {
       button.textContent = prev;
       button.classList.remove("copied");
-    }, 1200);
+    }, 1400);
+  }
+
+  function getListingUrl() {
+    var field = document.getElementById("vccUrlField");
+    return field ? field.value : "";
+  }
+
+  function openVccAdd() {
+    var url = getListingUrl();
+    if (!url) return;
+    window.location.href = "vcc://vpm/addRepo?url=" + encodeURIComponent(url);
+  }
+
+  function openHelpDialog() {
+    var dialog = document.getElementById("helpDialog");
+    if (dialog && typeof dialog.showModal === "function") {
+      dialog.showModal();
+    }
+  }
+
+  function closeHelpDialog() {
+    var dialog = document.getElementById("helpDialog");
+    if (dialog && typeof dialog.close === "function") {
+      dialog.close();
+    }
+  }
+
+  document.getElementById("vccUrlCopy").addEventListener("click", function () {
+    copyText(getListingUrl(), document.getElementById("vccUrlCopy"));
   });
-}
 
-(() => {
-  const searchInput = document.getElementById("searchInput");
-  const packageGrid = document.getElementById("packageGrid");
-  const cards = packageGrid.querySelectorAll(".package-card");
+  document.getElementById("vccAddRepo").addEventListener("click", openVccAdd);
 
-  searchInput.addEventListener("input", ({ target: { value = "" } }) => {
-    const q = value.trim().toLowerCase();
-    cards.forEach((card) => {
+  document.querySelectorAll(".rowAddToVcc").forEach(function (btn) {
+    btn.addEventListener("click", openVccAdd);
+  });
+
+  document.getElementById("helpOpen").addEventListener("click", openHelpDialog);
+  document.getElementById("helpClose").addEventListener("click", closeHelpDialog);
+
+  var searchInput = document.getElementById("searchInput");
+  var cards = document.querySelectorAll("#packageGrid .package-card");
+  searchInput.addEventListener("input", function (event) {
+    var q = (event.target.value || "").trim().toLowerCase();
+    cards.forEach(function (card) {
       if (!q) {
         card.classList.remove("hidden");
         return;
       }
-      const name = card.dataset.packageName?.toLowerCase() ?? "";
-      const id = card.dataset.packageId?.toLowerCase() ?? "";
-      card.classList.toggle("hidden", !(name.includes(q) || id.includes(q)));
-    });
-  });
-
-  document.getElementById("vccUrlCopy").addEventListener("click", () => {
-    copyText(document.getElementById("vccUrlField").value, document.getElementById("vccUrlCopy"));
-  });
-
-  const openVccAdd = () => {
-    window.location.assign(`vcc://vpm/addRepo?url=${encodeURIComponent(LISTING_URL)}`);
-  };
-  document.getElementById("vccAddRepo").addEventListener("click", (e) => {
-    e.preventDefault();
-    openVccAdd();
-  });
-  document.querySelectorAll(".rowAddToVcc").forEach((btn) => {
-    btn.addEventListener("click", openVccAdd);
-  });
-
-  const helpDialog = document.getElementById("helpDialog");
-  document.getElementById("helpOpen").addEventListener("click", () => helpDialog.showModal());
-  document.getElementById("helpClose").addEventListener("click", () => helpDialog.close());
-
-  const packageDialog = document.getElementById("packageDialog");
-  document.getElementById("packageDialogClose").addEventListener("click", () => packageDialog.close());
-
-  document.querySelectorAll(".rowPackageInfo").forEach((button) => {
-    button.addEventListener("click", () => {
-      const packageId = button.dataset.packageId;
-      const info = PACKAGES[packageId];
-      if (!info) return;
-
-      document.getElementById("packageInfoName").textContent = info.displayName || packageId;
-      document.getElementById("packageInfoId").textContent = packageId;
-      document.getElementById("packageInfoVersion").textContent = `v${info.version}`;
-      document.getElementById("packageInfoDescription").textContent = info.description || "—";
-
-      const authorCell = document.getElementById("packageInfoAuthorCell");
-      authorCell.textContent = "";
-      if (info.author?.name) {
-        if (info.author.url) {
-          const a = document.createElement("a");
-          a.href = info.author.url;
-          a.target = "_blank";
-          a.rel = "noopener";
-          a.textContent = info.author.name;
-          authorCell.appendChild(a);
-        } else {
-          authorCell.textContent = info.author.name;
-        }
-      } else {
-        authorCell.textContent = "—";
-      }
-
-      const depsList = document.getElementById("packageInfoDependencies");
-      depsList.innerHTML = "";
-      const deps = Object.entries(info.dependencies ?? {});
-      document.getElementById("packageInfoDepsRow").classList.toggle("hidden", deps.length === 0);
-      deps.forEach(([name, version]) => {
-        const li = document.createElement("li");
-        li.textContent = `${name} @ ${version}`;
-        depsList.appendChild(li);
-      });
-
-      const licenseRow = document.getElementById("packageInfoLicenseRow");
-      const licenseCell = document.getElementById("packageInfoLicenseCell");
-      licenseCell.textContent = "";
-      if (info.license || info.licenseUrl) {
-        licenseRow.classList.remove("hidden");
-        if (info.licenseUrl) {
-          const a = document.createElement("a");
-          a.href = info.licenseUrl;
-          a.target = "_blank";
-          a.rel = "noopener";
-          a.textContent = info.license || "ライセンスを見る";
-          licenseCell.appendChild(a);
-        } else {
-          licenseCell.textContent = info.license;
-        }
-      } else {
-        licenseRow.classList.add("hidden");
-      }
-
-      packageDialog.showModal();
+      var name = (card.getAttribute("data-package-name") || "").toLowerCase();
+      var id = (card.getAttribute("data-package-id") || "").toLowerCase();
+      card.classList.toggle("hidden", name.indexOf(q) === -1 && id.indexOf(q) === -1);
     });
   });
 })();

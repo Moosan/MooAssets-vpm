@@ -191,7 +191,27 @@ code {
 }
 
 .help-list { padding-left: 1.4em; margin: .6em 0; }
+.help-list.compact { margin: .2em 0; }
 .help-list li { margin: .35em 0; }
+
+.vcc-note { margin-top: 14px; font-size: .85rem; }
+
+.pkg-details {
+  margin-top: 4px;
+  border-radius: var(--radius-sm);
+}
+.pkg-details summary {
+  display: inline-block;
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: .9rem;
+  padding: 6px 0;
+  list-style: none;
+}
+.pkg-details summary::-webkit-details-marker { display: none; }
+.pkg-details[open] summary { margin-bottom: 8px; }
+.pkg-details .meta-table { margin-top: 0; }
 
 dialog {
   border: none;
